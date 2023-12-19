@@ -81,7 +81,7 @@ class DatabaseAccess:
         Returns:
         - str: The password of the user.
         """
-        return self.db.user.find_one({'username': username})['password']
+        return self.db.user.find_one({'username': username})['password'] if self.user_exists(username) else None
 
     def set_password(self, username, password):
         """
@@ -142,7 +142,7 @@ class DatabaseAccess:
         Returns:
         - str: The IP address of the user.
         """
-        return self.db.online_users.find_one({'username': username})['ip']
+        return self.db.online_users.find_one({'username': username})['ip'] if self.is_user_online(username) else None
     
     def get_user_port(self, username):
         """
@@ -154,7 +154,7 @@ class DatabaseAccess:
         Returns:
         - int: The port number of the user.
         """
-        return self.db.online_users.find_one({'username': username})['port']
+        return self.db.online_users.find_one({'username': username})['port'] if self.is_user_online(username) else None
     
     def get_online_users(self):
         """
