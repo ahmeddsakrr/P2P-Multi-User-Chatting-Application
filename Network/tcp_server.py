@@ -4,7 +4,7 @@ import time
 import sys
 import logging
 from DAO.database_access import DatabaseAccess
-from password import Password
+from Service.password import Password
 class TCPServer(threading.Thread):
     '''
     This class is used to process the client's messages.
