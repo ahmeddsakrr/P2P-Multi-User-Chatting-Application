@@ -105,3 +105,34 @@ class TCPServer(threading.Thread):
                     print("Error: " + str(e))
                     logging.error("Error: " + str(e))
                     break
+
+
+print("Server started.")
+logging.basicConfig(filename="server.log", level=logging.INFO)
+port = 15600
+databaseAccess = DatabaseAccess()
+hostname = gethostname()
+try:
+    host = gethostbyname(hostname)
+except gaierror:
+    print("Error: Hostname could not be resolved.")
+    logging.error("Error: Hostname could not be resolved.")
+    sys.exit()
+
+print("Server IP address: " + host)
+print("Server port: " + str(port))
+
+tcp_server_socket = socket(AF_INET, SOCK_STREAM)
+tcp_server_socket.bind((host, port))
+tcp_server_socket.listen(5)
+
+while True:
+    try:
+        connection_socket, addr = tcp_server_socket.accept()
+        new_thread = TCPServer(addr[0], addr[1], connection_socket)
+        new_thread.start()
+    except KeyboardInterrupt:
+        print("Server stopped.")
+        logging.info("Server stopped.")
+        break
+tcp_server_socket.close()
