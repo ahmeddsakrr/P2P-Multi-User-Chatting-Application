@@ -4,7 +4,7 @@ import os
 class Password:
     @staticmethod
     def hash(password, salt):
-        return hashlib.sha256(password.encode() + salt.encode()).hexdigest()
+        return hashlib.sha256(password.encode() + salt).hexdigest()
 
     @staticmethod
     def verify(stored_password, provided_password, salt):
