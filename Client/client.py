@@ -4,12 +4,13 @@ import time
 import sys
 import logging
 import select
-
+from Service.color_utils import colored_print
 
 class Client(threading.Thread):
     def __init__(self):
         super().__init__()
-        self.serverIpAddress = input("Enter server IP address: ")
+        colored_print("Enter the server IP address: ", "prompt")
+        self.serverIpAddress = input()
         self.serverPort = 15600
         self.clientSocket = socket(AF_INET, SOCK_STREAM)
         self.clientSocket.connect((self.serverIpAddress, self.serverPort))
@@ -22,11 +23,11 @@ class Client(threading.Thread):
         userSelection = None
 
         while userSelection != "3":
-
-            print("1. Create account")
-            print("2. Login")
-            print("3. Logout")
-            userSelection = input("Enter your choice: ")
+            colored_print("1. Create account", "menu")
+            colored_print("2. Login", "menu")
+            colored_print("3. Logout", "menu")
+            colored_print("Enter your choice: ", "prompt")
+            userSelection = input()
 
             if userSelection == "1":
                 self.create_account()
@@ -40,9 +41,9 @@ class Client(threading.Thread):
                 self.logout()
                 self.isOnline = False
                 self.loginCredentials = (None, None)
-                print("Logged out successfully.")
+                colored_print("Logged out successfully.", "success")
             else:
-                print("Invalid choice.")
+                colored_print("Invalid choice.", "error")
 
 
 
@@ -50,36 +51,40 @@ class Client(threading.Thread):
         '''
         This method is used to create a new account.
         '''
-        username = input("Enter username: ")
-        password = input("Enter password: ")
+        colored_print("Enter username: ", "prompt")
+        username = input()
+        colored_print("Enter password: ", "prompt")
+        password = input()
         self.clientSocket.send(("create " + username + " " + password).encode())
         response = self.clientSocket.recv(1024).decode()
         logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
         if response == "create-success":
-            print("Account created successfully.")
+            colored_print("Account created successfully.", "success")
         elif response == "create-failed-user-exists":
-            print("Account creation failed. Username already exists.")
+            colored_print("Account creation failed. Username already exists.", "error")
 
     def login(self):
         '''
         This method is used to login to an existing account.
         '''
-        username = input("Enter username: ")
-        password = input("Enter password: ")
+        colored_print("Enter username: ", "prompt")
+        username = input()
+        colored_print("Enter password: ", "prompt")
+        password = input()
         self.clientSocket.send(("login " + username + " " + password).encode())
         response = self.clientSocket.recv(1024).decode()
         logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
         if response == "login-success":
-            print("Login successful.")
+            colored_print("Login successful.", "success")
             return True
         elif response == "login-failed-already-logged-in":
-            print("Login failed. User is already logged in.")
+            colored_print("Login failed. User is already logged in.", "error")
             return False
         elif response == "login-failed-incorrect-password":
-            print("Login failed. Wrong password.")
+            colored_print("Login failed. Wrong password.", "error")
             return False
         elif response == "login-failed-username-not-found":
-            print("Login failed. Wrong username.")
+            colored_print("Login failed. Wrong username.", "error")
             return False
 
     def logout(self):
@@ -91,11 +96,11 @@ class Client(threading.Thread):
         response = self.clientSocket.recv(1024).decode()
         logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
         if response == "log-out-success":
-            print("Logout successful.")
+            colored_print("Logout successful.", "success")
         elif response == "logout-failed-not-logged-in":
-            print("Logout failed. User is not logged in.")
+            colored_print("Logout failed. User is not logged in.", "error")
         elif response == "logout-failed-incorrect-username":
-            print("Logout failed. Wrong username.")
+            colored_print("Logout failed. Wrong username.", "error")
 
 
 

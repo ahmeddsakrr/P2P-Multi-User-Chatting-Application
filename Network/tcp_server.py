@@ -5,6 +5,7 @@ import sys
 import logging
 from DAO.database_access import DatabaseAccess
 from Service.password import Password
+from Service.color_utils import colored_print
 class TCPServer(threading.Thread):
     '''
     This class is used to process the client's messages.
@@ -20,7 +21,7 @@ class TCPServer(threading.Thread):
         self.tcp_socket = tcp_socket
         self.username = None
         self.isOnline = True
-        print("New thread started for " + user_ip + ":" + str(user_port))
+        colored_print("New thread started for " + user_ip + ":" + str(user_port), "success")
 
         def run(self) :
             '''
@@ -28,7 +29,7 @@ class TCPServer(threading.Thread):
             '''
 
             self.lock = threading.Lock()
-            print("Connection from : " + user_ip + ":" + str(user_port))
+            colored_print("Connection from : " + self.user_ip + ":" + str(self.user_port), "success")
             while True:
                 try:
                     message = self.tcp_socket.recv(1024).decode().split()
@@ -36,14 +37,14 @@ class TCPServer(threading.Thread):
                     if str(message[0]).lower() == "create":
                         if DatabaseAccess.user_exists(str(message[1])):
                             response = "create-failed-user-exists"
-                            print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response)
+                            colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "error")
                             logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                             self.tcp_socket.send(response.encode())
                         else:
                             salt = Password.generate_salt()
                             DatabaseAccess.create_user(str(message[1]), Password.hash(str(message[2]), salt))
                             response = "create-success"
-                            print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response)
+                            colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "success")
                             logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                             self.tcp_socket.send(response.encode())
                     elif str(message[0]).lower() == "login":
@@ -51,7 +52,7 @@ class TCPServer(threading.Thread):
                             if Password.verify(DatabaseAccess.get_password(str(message[1])), str(message[2])):
                                 if DatabaseAccess.is_user_online(str(message[1])):
                                     response = "login-failed-already-logged-in"
-                                    print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response)
+                                    colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "error")
                                     logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                                     self.tcp_socket.send(response.encode())
                                 else:
@@ -63,17 +64,17 @@ class TCPServer(threading.Thread):
                                     finally:
                                         self.lock.release()
                                     response = "login-success"
-                                    print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response)
+                                    colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "success")
                                     logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                                     self.tcp_socket.send(response.encode())
                             else:
                                 response = "login-failed-incorrect-password"
-                                print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response)
+                                colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "error")
                                 logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                                 self.tcp_socket.send(response.encode())
                         else:
                             response = "login-failed-username-not-found"
-                            print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response)
+                            colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "error")
                             logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                             self.tcp_socket.send(response.encode())
 
@@ -87,27 +88,27 @@ class TCPServer(threading.Thread):
                                 finally:
                                     self.lock.release()
                                 response = "log-out-success" + str(message[1])
-                                print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response)
+                                colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "success")
                                 logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                                 self.tcp_socket.send(response.encode())
                                 self.tcp_socket.close()
                             else:
                                 response = "logout-failed-not-logged-in"
-                                print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response)
+                                colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "error")
                                 logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                                 self.tcp_socket.send(response.encode())
                         else:
                             response = "log-out-fail-incorrect-username"
-                            print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response)
+                            colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "error")
                             logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                             self.tcp_socket.send(response.encode())
                 except OSError as e:
-                    print("Error: " + str(e))
+                    colored_print("Connection closed by " + self.user_ip + ":" + str(self.user_port), "error")
                     logging.error("Error: " + str(e))
                     break
 
 
-print("Server started.")
+colored_print("Starting server...", "success")
 logging.basicConfig(filename="server.log", level=logging.INFO)
 port = 15600
 databaseAccess = DatabaseAccess()
@@ -115,12 +116,12 @@ hostname = gethostname()
 try:
     host = gethostbyname(hostname)
 except gaierror:
-    print("Error: Hostname could not be resolved.")
+    colored_print("Error: Hostname could not be resolved.", "error")
     logging.error("Error: Hostname could not be resolved.")
     sys.exit()
 
-print("Server IP address: " + host)
-print("Server port: " + str(port))
+colored_print("Server IP address: " + host, "success")
+colored_print("Server port: " + str(port), "success")
 
 tcp_server_socket = socket(AF_INET, SOCK_STREAM)
 tcp_server_socket.bind((host, port))
@@ -132,7 +133,7 @@ while True:
         new_thread = TCPServer(addr[0], addr[1], connection_socket)
         new_thread.start()
     except KeyboardInterrupt:
-        print("Server stopped.")
+        colored_print("Server stopped.", "error")
         logging.info("Server stopped.")
         break
 tcp_server_socket.close()

@@ -1,5 +1,5 @@
 from pymongo import MongoClient, errors
-
+from Service.color_utils import colored_print
 
 class DatabaseAccess:
 
@@ -9,7 +9,7 @@ class DatabaseAccess:
             self.client = MongoClient('localhost', 27017)
             self.db = self.client['p2p_database']
         except errors.ConnectionFailure as e:
-            print("Could not connect to MongoDB: %s" % e)
+            colored_print("Could not connect to MongoDB: %s" % e, "error")
 
     def get_db(self):
         """
@@ -37,7 +37,7 @@ class DatabaseAccess:
 
             return self.db.user.find_one({'username': username}) is not None
         except errors.PyMongoError as e:
-            print("Error checking user existence : %s" % e)
+            colored_print("Error checking user existence : %s" % e, "error")
 
     def create_user(self, username, password):
         """
@@ -56,7 +56,7 @@ class DatabaseAccess:
                 self.db.user.insert_one({'username': username, 'password': password})
                 return True
         except errors.PyMongoError as e:
-            print("Error creating user : %s" % e)
+            colored_print("Error creating user : %s" % e, "error")
             return False
 
     def get_user(self, username):
@@ -118,7 +118,7 @@ class DatabaseAccess:
             if not self.is_user_online(username):
                 self.db.online_users.insert_one({'username': username, 'port': port, 'ip': ip})
         except errors.PyMongoError as e:
-            print("Error setting user online : %s" % e)
+            colored_print("Error setting user online : %s" % e, "error")
 
     def set_user_offline(self, username):
         """
@@ -130,7 +130,7 @@ class DatabaseAccess:
         try:
             self.db.online_users.delete_one({'username': username})
         except errors.PyMongoError as e:
-            print("Error setting user offline : %s" % e)
+            colored_print("Error setting user offline : %s" % e, "error")
 
     def get_user_ip(self, username):
         """
