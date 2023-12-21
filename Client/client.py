@@ -5,6 +5,7 @@ import sys
 import logging
 import select
 from Service.color_utils import colored_print
+import colorama
 
 class Client(threading.Thread):
     def __init__(self):
@@ -116,4 +117,5 @@ class Client(threading.Thread):
         return port
 
 
+colorama.init()
 main = Client() # create a client object

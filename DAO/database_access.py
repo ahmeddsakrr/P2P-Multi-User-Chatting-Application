@@ -1,11 +1,12 @@
 from pymongo import MongoClient, errors
 from Service.color_utils import colored_print
+import colorama
 
 class DatabaseAccess:
 
     def __init__(self):
         try:
-
+            colorama.init()
             self.client = MongoClient('localhost', 27017)
             self.db = self.client['p2p_database']
         except errors.ConnectionFailure as e:
@@ -23,6 +24,7 @@ class DatabaseAccess:
         """
         return self.client
 
+
     def user_exists(self, username):
         """
             Checks if a user exists in the database.
@@ -39,7 +41,7 @@ class DatabaseAccess:
         except errors.PyMongoError as e:
             colored_print("Error checking user existence : %s" % e, "error")
 
-    def create_user(self, username, password):
+    def create_user(self, username, password, salt):
         """
         Creates a new user in the database.
 
@@ -53,7 +55,7 @@ class DatabaseAccess:
         try:
 
             if not self.user_exists(username):
-                self.db.user.insert_one({'username': username, 'password': password})
+                self.db.user.insert_one({'username': username, 'password': password, 'salt': salt})
                 return True
         except errors.PyMongoError as e:
             colored_print("Error creating user : %s" % e, "error")
@@ -173,3 +175,15 @@ class DatabaseAccess:
         - list: List of usernames of online users.
         """
         return [user['username'] for user in self.get_online_users()]
+
+    def get_user_salt(self, username):
+        """
+        Retrieves the salt of a user from the database.
+
+        Parameters:
+        - username (str): The username of the user.
+
+        Returns:
+        - str: The salt of the user.
+        """
+        return self.db.user.find_one({'username': username})['salt'] if self.user_exists(username) else None

@@ -15,7 +15,7 @@ class TestDatabaseAccess(unittest.TestCase):
 
     def test_user_exists(self):
         # Test user existence when user exists
-        self.assertTrue(self.db_access.create_user('test_user', 'password'))
+        self.assertTrue(self.db_access.create_user('test_user', 'password', ""))
         self.assertTrue(self.db_access.user_exists('test_user'))
 
         # Test user existence when user doesn't exist
@@ -23,14 +23,14 @@ class TestDatabaseAccess(unittest.TestCase):
 
     def test_create_user(self):
         # Test creating a new user
-        self.assertTrue(self.db_access.create_user('new_user', 'password'))
+        self.assertTrue(self.db_access.create_user('new_user', 'password', ""))
 
         # Test creating an existing user
-        self.assertFalse(self.db_access.create_user('new_user', 'password'))
+        self.assertFalse(self.db_access.create_user('new_user', 'password', ""))
 
     def test_get_user(self):
         # Test retrieving an existing user
-        self.db_access.create_user('new_user', 'password')
+        self.db_access.create_user('new_user', 'password', "")
         self.assertIsNotNone(self.db_access.get_user('new_user'))
 
         # Test retrieving a non-existing user
@@ -38,7 +38,7 @@ class TestDatabaseAccess(unittest.TestCase):
 
     def test_get_password(self):
         # Test retrieving password for an existing user
-        self.db_access.create_user('new_user', 'password')
+        self.db_access.create_user('new_user', 'password', "")
         self.assertEqual(self.db_access.get_password('new_user'), 'password')
 
         # Test retrieving password for a non-existing user
@@ -47,7 +47,7 @@ class TestDatabaseAccess(unittest.TestCase):
 
     def test_set_password(self):
         # Test setting password for an existing user
-        self.db_access.create_user('test_user', 'old_password')
+        self.db_access.create_user('test_user', 'old_password', "")
         self.db_access.set_password('test_user', 'new_password')
         self.assertEqual(self.db_access.get_password('test_user'), 'new_password')
 
