@@ -89,7 +89,7 @@ class TCPServer(threading.Thread):
                                 pass
                             finally:
                                 self.lock.release()
-                            response = "log-out-success" + str(message[1])
+                            response = "log-out-success " + str(message[1])
                             colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "success")
                             logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
                             self.tcp_socket.send(response.encode())
@@ -125,8 +125,8 @@ except gaierror:
 
 colored_print("Server IP address: " + host, "success")
 colored_print("Server port: " + str(port), "success")
-
 tcp_server_socket = socket(AF_INET, SOCK_STREAM)
+# tcp_server_socket.close()
 tcp_server_socket.bind((host, port))
 tcp_server_socket.listen(5)
 

@@ -42,6 +42,8 @@ class Client(threading.Thread):
                 self.logout()
                 self.isOnline = False
                 self.loginCredentials = (None, None)
+                self.clientServerPort = None
+                self.clientSocket.close()
                 colored_print("Logged out successfully.", "success")
             else:
                 colored_print("Invalid choice.", "error")
@@ -76,6 +78,7 @@ class Client(threading.Thread):
         response = self.clientSocket.recv(1024).decode()
         logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
         if response == "login-success":
+            self.loginCredentials = (username, password)
             colored_print("Login successful.", "success")
             return True
         elif response == "login-failed-already-logged-in":
@@ -93,6 +96,7 @@ class Client(threading.Thread):
         This method is used to log-out of an existing account.
         '''
         username = str(self.loginCredentials[0])
+        colored_print(username, "prompt")
         self.clientSocket.send(("log-out " + username).encode())
         response = self.clientSocket.recv(1024).decode()
         logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
