@@ -11,7 +11,7 @@ class TCPServer(threading.Thread):
     This class is used to process the client's messages.
     '''
 
-    def __init__(self, user_ip, user_port, tcp_socket):
+    def __init__(self, user_ip, user_port, tcp_socket, server_ip, server_port):
         '''
         Initializes the class.
         '''
@@ -22,6 +22,9 @@ class TCPServer(threading.Thread):
         self.username = None
         self.isOnline = True
         self.DatabaseAccess = DatabaseAccess()
+        self.server_ip = server_ip
+        self.server_port = server_port
+        self.active_chat_rooms = set()
         colored_print("New thread started for " + user_ip + ":" + str(user_port), "success")
 
     def run(self) :
@@ -35,7 +38,11 @@ class TCPServer(threading.Thread):
             try:
                 message = self.tcp_socket.recv(1024).decode().split()
                 logging.info("Received message: " + str(message) + " from " + self.user_ip + ":" + str(self.user_port))
-                if str(message[0]).lower() == "create":
+                if str(message[0]).lower() == "create-room":
+                    self.create_chat_room(message[1])
+                elif str(message[0]).lower() == "join-room":
+                    self.join_chat_room(message[1])
+                elif str(message[0]).lower() == "create":
                     if self.DatabaseAccess.user_exists(str(message[1])):
                         response = "create-failed-user-exists"
                         colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "error")
@@ -109,6 +116,29 @@ class TCPServer(threading.Thread):
                 logging.error("Error: " + str(e))
                 break
 
+    def create_chat_room(self, room_name):
+        if room_name not in self.active_chat_rooms:
+            self.active_chat_rooms.add(room_name)
+            response = "create-room-success"
+        else:
+            response = "create-room-failed"
+        colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "info")
+        logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
+        self.tcp_socket.send(response.encode())
+
+    def join_chat_room(self, room_name):
+        if room_name in self.active_chat_rooms:
+            response = "join-room-success"
+        else:
+            response = "join-room-failed"
+        colored_print("From " + self.user_ip + ":" + str(self.user_port) + " : " + response, "info")
+        logging.info("Sent message: " + response + " to " + self.user_ip + ":" + str(self.user_port))
+        self.tcp_socket.send(response.encode())
+
+    def send_p2p_info(self):
+        p2p_info = f"p2p {self.server_ip}:{self.server_port}"
+        self.tcp_socket.send(p2p_info.encode())
+
 
 colorama.init()
 colored_print("Starting server...", "success")
@@ -133,8 +163,9 @@ tcp_server_socket.listen(5)
 while True:
     try:
         connection_socket, addr = tcp_server_socket.accept()
-        new_thread = TCPServer(addr[0], addr[1], connection_socket)
+        new_thread = TCPServer(addr[0], addr[1], connection_socket, host, port)
         new_thread.start()
+        new_thread.send_p2p_info()
     except KeyboardInterrupt:
         colored_print("Server stopped.", "error")
         logging.info("Server stopped.")
