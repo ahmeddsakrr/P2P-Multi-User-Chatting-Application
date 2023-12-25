@@ -18,26 +18,30 @@ class Client(threading.Thread):
         self.loginCredentials = (None, None)  # (username, password) for client login
         self.isOnline = False
         self.clientServerPort = None
+        self.peerIp = None
+        self.peerPort = None
 
         logging.basicConfig(filename='client.log', filemode='w', level=logging.INFO)
 
         userSelection = None
 
-        while userSelection != "3":
-            colored_print("1. Create account", "menu")
-            colored_print("2. Login", "menu")
+        while userSelection != "4":
+            colored_print("1. Chat Menu", "menu")
+            colored_print("2. Manage Account", "menu")
             colored_print("3. Logout", "menu")
+            colored_print("4. Exit", "menu")
             colored_print("Enter your choice: ", "prompt")
             userSelection = input()
 
             if userSelection == "1":
-                self.create_account()
+                self.chat_menu()
             elif userSelection == "2" and not self.isOnline:
                 status = self.login()
                 clientServerPort = int(self.get_open_port())
                 if status:
                     self.isOnline = True
-                    self.clientServerPort = clientServerPort
+                    self.clientServerPort = int(self.get_open_port())
+                    self.establish_p2p_connection()
             elif userSelection == "3" and self.isOnline:
                 self.logout()
                 self.isOnline = False
@@ -45,8 +49,50 @@ class Client(threading.Thread):
                 self.clientServerPort = None
                 self.clientSocket.close()
                 colored_print("Logged out successfully.", "success")
+            elif userSelection == "4":
+                self.exit_program()
             else:
                 colored_print("Invalid choice.", "error")
+
+    def chat_menu(self):
+            while True:
+                colored_print("1. Create Chat Room", "menu")
+                colored_print("2. Join Chat Room", "menu")
+                colored_print("3. Back to Main Menu", "menu")
+                colored_print("Enter your choice: ", "prompt")
+                choice = input()
+
+                if choice == "1":
+                    self.create_chat_room()
+                elif choice == "2":
+                    self.join_chat_room()
+                elif choice == "3":
+                    break
+                else:
+                    colored_print("Invalid choice.", "error")
+
+    def create_chat_room(self):
+            colored_print("Enter chat room name: ", "prompt")
+            room_name = input()
+            self.clientSocket.send(f"create-room {room_name}".encode())
+            response = self.clientSocket.recv(1024).decode()
+            logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
+            if response == "create-room-success":
+                colored_print(f"Chat room '{room_name}' created successfully.", "success")
+            elif response == "create-room-failed":
+                colored_print(f"Failed to create chat room '{room_name}'.", "error")
+
+    def join_chat_room(self):
+            colored_print("Enter chat room name: ", "prompt")
+            room_name = input()
+            self.clientSocket.send(f"join-room {room_name}".encode())
+            response = self.clientSocket.recv(1024).decode()
+            logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
+            if response == "join-room-success":
+                colored_print(f"Joined chat room '{room_name}' successfully.", "success")
+                # Additional logic for handling chat in the room can be added here
+            elif response == "join-room-failed":
+                colored_print(f"Failed to join chat room '{room_name}'.", "error")
 
 
 
@@ -119,6 +165,24 @@ class Client(threading.Thread):
         port = s.getsockname()[1]
         s.close()
         return port
+
+    def establish_p2p_connection(self):
+        self.clientSocket.send(f"p2p {self.clientServerPort}".encode())
+        p2p_info = self.clientSocket.recv(1024).decode()
+        self.peerIp, self.peerPort = self.parse_p2p_info(p2p_info)
+        colored_print(f"Peer-to-peer connection established with {self.peerIp}:{self.peerPort}", "success")
+        # Now you can start a new thread to handle peer-to-peer communication
+
+    def parse_p2p_info(self, info):
+        parts = info.split()
+        if len(parts) == 2 and parts[0].lower() == "p2p":
+            ip, port = parts[1].split(":")
+            return ip, int(port)
+        return None, None
+
+    def exit_program(self):
+        self.clientSocket.send("exit".encode())
+        sys.exit()
 
 
 colorama.init()
