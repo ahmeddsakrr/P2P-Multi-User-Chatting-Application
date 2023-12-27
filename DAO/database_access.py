@@ -187,3 +187,69 @@ class DatabaseAccess:
         - str: The salt of the user.
         """
         return self.db.user.find_one({'username': username})['salt'] if self.user_exists(username) else None
+
+    def create_chat_room(self, room_name):
+        """
+        Creates a new chat room in the database.
+
+        Parameters:
+        - room_name (str): The name of the chat room.
+
+        Returns:
+        - bool: True if the chat room is created successfully, False if the chat room already exists.
+        """
+        try:
+            if not self.chat_room_exists(room_name):
+                self.db.rooms.insert_one({'room_name': room_name, 'users': []})
+                return True
+            else:
+                return False
+        except errors.PyMongoError as e:
+            colored_print("Error creating chat room: %s" % e, "error")
+            return False
+
+    def join_chat_room(self, room_name, username):
+        """
+        Adds a user to a chat room in the database.
+
+        Parameters:
+        - room_name (str): The name of the chat room.
+        - username (str): The username of the user joining the chat room.
+
+        Returns:
+        - bool: True if the user is added to the chat room successfully, False if the chat room or user does not exist.
+        """
+        try:
+            if self.chat_room_exists(room_name) and self.user_exists(username):
+                self.db.rooms.update_one({'room_name': room_name}, {'$addToSet': {'users': username}})
+                return True
+            else:
+                return False
+        except errors.PyMongoError as e:
+            colored_print("Error joining chat room: %s" % e, "error")
+            return False
+
+    def chat_room_exists(self, room_name):
+        """
+        Checks if a chat room exists in the database.
+
+        Parameters:
+        - room_name (str): The name of the chat room.
+
+        Returns:
+        - bool: True if the chat room exists, False otherwise.
+        """
+        try:
+            return self.db.rooms.find_one({'room_name': room_name}) is not None
+        except errors.PyMongoError as e:
+            colored_print("Error checking chat room existence: %s" % e, "error")
+            return False
+
+    def get_chat_rooms(self):
+        """
+        Retrieves a list of all chat rooms.
+
+        Returns:
+        - list: List of chat room names.
+        """
+        return self.db.rooms.find()
