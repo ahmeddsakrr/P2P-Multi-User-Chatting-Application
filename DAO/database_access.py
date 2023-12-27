@@ -288,3 +288,13 @@ class DatabaseAccess:
         """
         self.db.rooms.delete_one({'room_name': room_name})
 
+    def remove_user_from_room(self, room_name, username):
+        """
+        Removes a user from a chat room.
+
+        Parameters:
+        - room_name (str): The name of the chat room.
+        - username (str): The username of the user to remove.
+        """
+        self.db.rooms.update_one({'room_name': room_name}, {'$pull': {'users': username}})
+
