@@ -252,4 +252,39 @@ class DatabaseAccess:
         Returns:
         - list: List of chat room names.
         """
-        return self.db.rooms.find()
+        return [room['room_name'] for room in self.db.rooms.find()]
+        # return self.db.rooms.find()
+
+    def get_chat_room_users(self, room_name):
+        """
+        Retrieves a list of all users in a chat room.
+
+        Parameters:
+        - room_name (str): The name of the chat room.
+
+        Returns:
+        - list: List of usernames of users in the chat room.
+        """
+        return self.db.rooms.find_one({'room_name': room_name})['users'] if self.chat_room_exists(room_name) else None
+
+    def get_chat_room_users_list(self, room_name):
+        """
+        Retrieves a list of all users in a chat room.
+
+        Parameters:
+        - room_name (str): The name of the chat room.
+
+        Returns:
+        - list: List of usernames of users in the chat room.
+        """
+        return [user['username'] for user in self.get_chat_room_users(room_name)]
+
+    def delete_room(self, room_name):
+        """
+        Deletes a chat room from the database.
+
+        Parameters:
+        - room_name (str): The name of the chat room.
+        """
+        self.db.rooms.delete_one({'room_name': room_name})
+

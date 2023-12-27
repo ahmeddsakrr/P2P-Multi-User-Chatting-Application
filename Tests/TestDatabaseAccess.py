@@ -92,6 +92,8 @@ class TestDatabaseAccess(unittest.TestCase):
         self.assertCountEqual(self.db_access.get_chat_rooms(), expected_rooms)
 
         # Test retrieving chat rooms when there are no rooms
+        self.db_access.delete_room('test_room')
+        self.db_access.delete_room('new_room')
         self.assertEqual(self.db_access.get_chat_rooms(), [])
 
     def test_chat_room_exists(self):
@@ -104,6 +106,7 @@ class TestDatabaseAccess(unittest.TestCase):
 
     def test_join_chat_room(self):
         # Test joining an existing chat room
+        self.db_access.create_user('test_user', 'password', "")
         self.db_access.create_chat_room('test_room')
         self.assertTrue(self.db_access.join_chat_room('test_room', 'test_user'))
 
