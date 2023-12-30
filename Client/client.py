@@ -13,7 +13,8 @@ class Client(threading.Thread):
     def __init__(self):
         super().__init__()
         # colored_print("Enter the server IP address: ", "prompt")
-        self.serverIpAddress = "127.0.1.1"
+        colored_print("Enter the server IP address: ", "prompt")
+        self.serverIpAddress = input()
         self.serverPort = 15600
         self.clientSocket = socket(AF_INET, SOCK_STREAM)
         self.clientSocket.connect((self.serverIpAddress, self.serverPort))
@@ -50,6 +51,7 @@ class Client(threading.Thread):
             colored_print("6. Create chat room", "menu")
             colored_print("7. Join chat room", "menu")
             colored_print("Enter your choice: ", "prompt")
+            userSelection = input()
 
             if userSelection == "1":
                 self.create_account()
