@@ -83,13 +83,15 @@ class Client(threading.Thread):
                 colored_print("Logged out successfully.", "success")
             elif userSelection == "4":
                 # self.exit_program()
-                username_to_search = input(colored_print("Enter username to search: ", "prompt"))
+                colored_print("Enter username to search: ", "prompt")
+                username_to_search = input()
                 search_status = self.search_user(username_to_search)
                 if search_status is not None and search_status:
                     colored_print("User found.", "success")
                     colored_print("IP address of the user: " + username_to_search + "is " + search_status, "success")
             elif userSelection == "5" and self.isOnline:
-                username = input(colored_print("Enter username of the user you want to chat with: ", "prompt"))
+                colored_print("Enter username of the user you want to chat with: ", "prompt")
+                username = input()
                 search_status = self.search_user(username)
                 if search_status is not None and search_status:
                     colored_print("User found.", "success")
@@ -99,11 +101,13 @@ class Client(threading.Thread):
                     self.peerClient.start()
                     self.peerClient.join()
             elif userSelection == "6" and self.isOnline:
-                room_id = input(colored_print("Enter room id: ", "prompt"))
+                colored_print("Enter room id: ", "prompt")
+                room_id = input()
                 self.create_chat_room(room_id)
                 colored_print("Chat room created successfully.", "success")
             elif userSelection == "7" and self.isOnline:
-                room_id = input(colored_print("Enter room id: ", "prompt"))
+                colored_print("Enter room id: ", "prompt")
+                room_id = input()
                 join_status = self.join_chat_room(room_id)
                 if join_status is not None and join_status:
                     ip_to_connect = "192.168.1.5"
