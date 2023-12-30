@@ -6,18 +6,27 @@ import logging
 import select
 from Service.color_utils import colored_print
 import colorama
+from Network.PeerServer import PeerServer
+from Network.PeerClient import PeerClient
 
 class Client(threading.Thread):
     def __init__(self):
         super().__init__()
-        colored_print("Enter the server IP address: ", "prompt")
-        self.serverIpAddress = input()
+        # colored_print("Enter the server IP address: ", "prompt")
+        self.serverIpAddress = "127.0.1.1"
         self.serverPort = 15600
         self.clientSocket = socket(AF_INET, SOCK_STREAM)
         self.clientSocket.connect((self.serverIpAddress, self.serverPort))
+        self.udpSocket = socket(AF_INET, SOCK_DGRAM)
+        self.udpPort = 15500
         self.loginCredentials = (None, None)  # (username, password) for client login
         self.isOnline = False
         self.clientServerPort = None
+        self.roomServerPort = None
+        self.peerServer = None
+        self.peerClient = None
+        self.timer = 0
+        #############################################
         self.peerIp = None
         self.peerPort = None
 
@@ -25,34 +34,99 @@ class Client(threading.Thread):
 
         userSelection = None
 
-        while userSelection != "4":
-            colored_print("1. Chat Menu", "menu")
-            colored_print("2. Manage Account", "menu")
+        # while userSelection != "4":
+        #     colored_print("1. Chat Menu", "menu")
+        #     colored_print("2. Manage Account", "menu")
+        #     colored_print("3. Logout", "menu")
+        #     colored_print("4. Exit", "menu")
+        #     colored_print("Enter your choice: ", "prompt")
+        #     userSelection = input()
+        while userSelection != "3":
+            colored_print("1. Create Account", "menu")
+            colored_print("2. Login", "menu")
             colored_print("3. Logout", "menu")
-            colored_print("4. Exit", "menu")
+            colored_print("4. Search for user", "menu")
+            colored_print("5. Create private chat", "menu")
+            colored_print("6. Create chat room", "menu")
+            colored_print("7. Join chat room", "menu")
             colored_print("Enter your choice: ", "prompt")
-            userSelection = input()
 
             if userSelection == "1":
-                self.chat_menu()
+                self.create_account()
             elif userSelection == "2" and not self.isOnline:
                 status = self.login()
                 clientServerPort = int(self.get_open_port())
+                roomServerPort = int(self.get_open_port())
                 if status:
                     self.isOnline = True
-                    self.clientServerPort = int(self.get_open_port())
-                    self.establish_p2p_connection()
+                    self.clientServerPort = clientServerPort
+                    self.roomServerPort = roomServerPort
+                    # self.establish_p2p_connection()
+                    if self.loginCredentials[0] is not None:
+                        self.peerServer = PeerServer(self.loginCredentials[0], self.clientServerPort, self.roomServerPort)
+                        self.peerServer.start()
+                        self.sendHelloMessage()
+
             elif userSelection == "3" and self.isOnline:
                 self.logout()
                 self.isOnline = False
                 self.loginCredentials = (None, None)
+                self.peerServer.isOnline = False
+                self.peerServer.tcp_server_socket.close()
+                if self.peerClient is not None:
+                    self.peerClient.tcp_socket.close()
+
                 self.clientServerPort = None
                 self.clientSocket.close()
                 colored_print("Logged out successfully.", "success")
             elif userSelection == "4":
-                self.exit_program()
+                # self.exit_program()
+                username_to_search = input(colored_print("Enter username to search: ", "prompt"))
+                search_status = self.search_user(username_to_search)
+                if search_status is not None and search_status:
+                    colored_print("User found.", "success")
+                    colored_print("IP address of the user: " + username_to_search + "is " + search_status, "success")
+            elif userSelection == "5" and self.isOnline:
+                username = input(colored_print("Enter username of the user you want to chat with: ", "prompt"))
+                search_status = self.search_user(username)
+                if search_status is not None and search_status:
+                    colored_print("User found.", "success")
+                    search_status = search_status.split(":")
+                    self.peerServer.chat = 1
+                    self.peerClient = PeerClient(connected_ip=search_status[0], connected_port=int(search_status[1]), username=self.loginCredentials[0], peer_server=self.peerServer, received_response=None, choice="5", room_id=None, room_peers = None)
+                    self.peerClient.start()
+                    self.peerClient.join()
+            elif userSelection == "6" and self.isOnline:
+                room_id = input(colored_print("Enter room id: ", "prompt"))
+                self.create_chat_room(room_id)
+                colored_print("Chat room created successfully.", "success")
+            elif userSelection == "7" and self.isOnline:
+                room_id = input(colored_print("Enter room id: ", "prompt"))
+                join_status = self.join_chat_room(room_id)
+                if join_status is not None and join_status:
+                    ip_to_connect = "192.168.1.5"
+                    self.peerServer.room = 1
+                    self.peerClient = PeerClient(ip_to_connect, None, self.loginCredentials[0], self.peerServer, None, "7", room_id, join_status)
+                    self.peerClient.start()
+                    self.peerClient.join()
+            elif userSelection == "accept-connection" and self.isOnline:
+                accept_message = "accept-connection" + " " + str(self.loginCredentials[0])
+                logging.info("Sent message: " + accept_message + " to " + str(self.peerIp) + ":" + str(self.peerPort))
+                self.peerServer.connected_peer_socket.send(accept_message.encode())
+                self.peerClient = PeerClient(self.peerServer.connected_peer_ip, self.peerServer.connected_peer_port, self.loginCredentials[0], self.peerServer, "accept-connection", "5", None, None)
+                self.peerClient.start()
+                self.peerClient.join()
+            elif userSelection == "reject-connection" and self.isOnline:
+                self.peerServer.connected_peer_socket.send("reject-connection".encode())
+                self.peerServer.isChatting = False
+                logging.info("Sent message: " + "reject-connection" + " to " + str(self.peerIp) + ":" + str(self.peerPort))
+            elif userSelection == "cancel":
+                self.timer.cancel()
             else:
                 colored_print("Invalid choice.", "error")
+        if userSelection == "cancel":
+            self.clientSocket.close()
+
 
     def chat_menu(self):
             while True:
@@ -71,28 +145,34 @@ class Client(threading.Thread):
                 else:
                     colored_print("Invalid choice.", "error")
 
-    def create_chat_room(self):
-            colored_print("Enter chat room name: ", "prompt")
-            room_name = input()
-            self.clientSocket.send(f"create-room {room_name}".encode())
-            response = self.clientSocket.recv(1024).decode()
-            logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
-            if response == "create-room-success":
-                colored_print(f"Chat room '{room_name}' created successfully.", "success")
-            elif response == "create-room-failed":
-                colored_print(f"Failed to create chat room '{room_name}'.", "error")
+    def create_chat_room(self, room_name):
+        self.clientSocket.send(f"create-room {room_name}".encode())
+        logging.info("Sent message: " + "create-room " + room_name + " to " + self.serverIpAddress + ":" + str(self.serverPort))
+        response = self.clientSocket.recv(1024).decode()
+        logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
+        if response == "create-room-success":
+            colored_print(f"Chat room '{room_name}' created successfully.", "success")
+        elif response == "create-room-failed":
+            colored_print(f"Failed to create chat room '{room_name}'.", "error")
 
-    def join_chat_room(self):
-            colored_print("Enter chat room name: ", "prompt")
-            room_name = input()
-            self.clientSocket.send(f"join-room {room_name}".encode())
-            response = self.clientSocket.recv(1024).decode()
-            logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
-            if response == "join-room-success":
-                colored_print(f"Joined chat room '{room_name}' successfully.", "success")
-                # Additional logic for handling chat in the room can be added here
-            elif response == "join-room-failed":
-                colored_print(f"Failed to join chat room '{room_name}'.", "error")
+    def join_chat_room(self,room_name):
+        message = "join-room " + room_name + " " + str(self.roomServerPort)
+        logging.info("Sent message: " + message + " to " + self.serverIpAddress + ":" + str(self.serverPort))
+        self.clientSocket.send(message.encode())
+        response = self.clientSocket.recv(1024).decode()
+        logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
+        peers_list_start = response.index("[")
+        peers_list_end = response.index("]") + 1
+        peers_list = response[peers_list_start:peers_list_end]
+        peers_list = eval(peers_list)
+        response = response.split()
+        if response[0] == "join-room-success":
+            colored_print(f"Joined chat room '{room_name}' successfully.", "success")
+            return peers_list
+            # Additional logic for handling chat in the room can be added here
+        elif response == "join-room-failed":
+            colored_print(f"Failed to join chat room '{room_name}'.", "error")
+            return 0
 
 
 
@@ -183,6 +263,27 @@ class Client(threading.Thread):
     def exit_program(self):
         self.clientSocket.send("exit".encode())
         sys.exit()
+
+    def sendHelloMessage(self):
+        if self.loginCredentials[0] is not None:
+            message = "hello " + str(self.loginCredentials[0])
+            logging.info("Sent message: " + message + " to " + self.serverIpAddress + ":" + str(self.udpPort))
+            self.udpSocket.sendto(message.encode(), (self.serverIpAddress, self.udpPort))
+            self.timer = threading.Timer(1, self.sendHelloMessage)
+            self.timer.start()
+
+    def search_user(self, username):
+        logging.info("Sent message: " + "search " + username + " to " + self.serverIpAddress + ":" + str(self.serverPort))
+        self.clientSocket.send(("search " + username).encode())
+        response = self.clientSocket.recv(1024).decode()
+        logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
+        response = response.split()
+        if response[0] == "search-failed":
+            colored_print("Search failed. User not found.", "error")
+            return None
+        elif response == "search-success":
+            colored_print("Search successful.", "success")
+            return response[1]
 
 
 colorama.init()

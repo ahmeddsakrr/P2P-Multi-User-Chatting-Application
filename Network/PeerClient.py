@@ -5,10 +5,10 @@ import select
 import logging
 from Service.color_utils import colored_print
 import colorama
-from PeerServer import PeerServer
+from Network.PeerServer import PeerServer
 
 class PeerClient(threading.Thread):
-    def __init__(self, connected_ip, connected_port, username, peer_server : PeerServer, received_response, choice, room_id, room_peers : list, server_name = "192.168.107"):
+    def __init__(self, connected_ip, connected_port, username, peer_server : PeerServer, received_response, choice, room_id, room_peers, server_name = "192.168.107"):
 
         threading.Thread.__init__(self)
         self.server_name = server_name
@@ -142,3 +142,21 @@ class PeerClient(threading.Thread):
                         break
                     message_to_send = input(colored_print("You: ", "prompt"))
                     self.update_peers()
+
+                    if len(message_to_send) and message_to_send.split()[0] == "exit":
+                        if self.exit() == "success":
+                            message_to_send = f"{self.username} left the chat room"
+                            for peer in self.room_peers:
+                                self.udp_socket.sendto(message_to_send.encode(), (self.connected_ip, int(peer)))
+                            break
+
+                    else:
+                        for peer in self.room_peers:
+                            if int(peer) != self.peer_server.chat_room_server_port:
+                                # we don't want to send the message to the server
+                                self.udp_socket.sendto(message_to_send.encode(), (self.connected_ip, int(peer)))
+
+                colored_print("Chat Room Client Ended", "success")
+                self.choice = None
+                self.tcp_socket.close()
+

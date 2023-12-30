@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-from Network.tcp_server import TCPServer
+from Network.Server import Server
 class TestTCPServer(unittest.TestCase):
 
     def setUp(self):
@@ -12,7 +12,7 @@ class TestTCPServer(unittest.TestCase):
         db_mock = self.mock_tcp_socket.DatabaseAccess.return_value
         db_mock.user_exists.return_value = True  # Simulate user exists
 
-        server = TCPServer('127.0.0.1', 12345, self.mock_tcp_socket)
+        server = Server('127.0.0.1', 12345, self.mock_tcp_socket)
         server.run()
 
         self.mock_tcp_socket.send.assert_called_with('create-failed-user-exists'.encode())
@@ -23,7 +23,7 @@ class TestTCPServer(unittest.TestCase):
         db_mock = self.mock_tcp_socket.DatabaseAccess.return_value
         db_mock.user_exists.return_value = False  # Simulate user does not exist
 
-        server = TCPServer('127.0.0.1', 12345, self.mock_tcp_socket)
+        server = Server('127.0.0.1', 12345, self.mock_tcp_socket)
         server.run()
 
         self.mock_tcp_socket.send.assert_called_with('create-success'.encode())
@@ -34,7 +34,7 @@ class TestTCPServer(unittest.TestCase):
         db_mock = self.mock_tcp_socket.DatabaseAccess.return_value
         db_mock.user_exists.return_value = False  # Simulate user does not exist
 
-        server = TCPServer('127.0.0.1', 12345, self.mock_tcp_socket)
+        server = Server('127.0.0.1', 12345, self.mock_tcp_socket)
         server.run()
 
         self.mock_tcp_socket.send.assert_called_with('login-failed-username-not-found'.encode())
@@ -46,7 +46,7 @@ class TestTCPServer(unittest.TestCase):
         db_mock.user_exists.return_value = True
         db_mock.get_password.return_value = "valid_password_hash"  # Simulate valid password hash
 
-        server = TCPServer('127.0.0.1', 12345, self.mock_tcp_socket)
+        server = Server('127.0.0.1', 12345, self.mock_tcp_socket)
         server.run()
 
         self.mock_tcp_socket.send.assert_called_with('login-failed-incorrect-password'.encode())
@@ -58,7 +58,7 @@ class TestTCPServer(unittest.TestCase):
         db_mock.user_exists.return_value = True
         db_mock.is_user_online.return_value = True  # Simulate user is already logged in
 
-        server = TCPServer('127.0.0.1', 12345, self.mock_tcp_socket)
+        server = Server('127.0.0.1', 12345, self.mock_tcp_socket)
         server.run()
 
         self.mock_tcp_socket.send.assert_called_with('login-failed-already-logged-in'.encode())
@@ -70,7 +70,7 @@ class TestTCPServer(unittest.TestCase):
         db_mock.user_exists.return_value = True
         db_mock.is_user_online.return_value = True  # Simulate user is logged in
 
-        server = TCPServer('127.0.0.1', 12345, self.mock_tcp_socket)
+        server = Server('127.0.0.1', 12345, self.mock_tcp_socket)
         server.run()
 
         self.mock_tcp_socket.send.assert_called_with('log-out-successvaliduser'.encode())
