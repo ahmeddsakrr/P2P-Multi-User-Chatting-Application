@@ -12,3 +12,6 @@ colors = {
 def colored_print(message, color):
     print(f"{colors.get(color, '')}{message}{Style.RESET_ALL}")
 
+def colored_print_no_newline(message, color):
+    print(f"{colors.get(color, '')}{message}{Style.RESET_ALL}", end="")
+

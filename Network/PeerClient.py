@@ -3,7 +3,7 @@ import threading
 import time
 import select
 import logging
-from Service.color_utils import colored_print
+from Service.color_utils import colored_print, colored_print_no_newline
 import colorama
 from Network.PeerServer import PeerServer
 
@@ -140,7 +140,7 @@ class PeerClient(threading.Thread):
                     self.update_peers()
                     if not self.room_peers:
                         break
-                    message_to_send = input(colored_print("You: ", "prompt"))
+                    message_to_send = input(colored_print_no_newline("You: ", "prompt"))
                     self.update_peers()
 
                     if len(message_to_send) and message_to_send.split()[0] == "exit":
