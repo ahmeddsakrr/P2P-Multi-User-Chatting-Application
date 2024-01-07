@@ -46,7 +46,8 @@ class PeerServer(threading.Thread):
             colored_print("Couldn't get host name", "error")
             return
 
-        self.udp_server_socket.bind(("192.168.1.107", self.chat_room_server_port))
+        my_ip = gethostname()
+        self.udp_server_socket.bind((gethostbyname(my_ip), self.chat_room_server_port))
         self.tcp_server_socket.bind((self.peer_server_hostname, self.peer_server_port))
 
         self.tcp_server_socket.listen(4)
@@ -110,7 +111,8 @@ class PeerServer(threading.Thread):
                             sockets.clear()
                             sockets.append(self.tcp_server_socket)
             except OSError as e:
-                colored_print("Error: " + str(e), "error")
+                # colored_print("Error: " + str(e), "error")
+                logging.info("Error: " + str(e))
                 break
 
 

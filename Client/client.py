@@ -4,7 +4,7 @@ import time
 import sys
 import logging
 import select
-from Service.color_utils import colored_print
+from Service.color_utils import colored_print, colored_print_no_newline
 import colorama
 from Network.PeerServer import PeerServer
 from Network.PeerClient import PeerClient
@@ -13,8 +13,9 @@ class Client(threading.Thread):
     def __init__(self):
         super().__init__()
         # colored_print("Enter the server IP address: ", "prompt")
-        colored_print("Enter the server IP address: ", "prompt")
-        self.serverIpAddress = input()
+        # colored_print("Enter the server IP address: ", "prompt")
+        host = gethostname()
+        self.serverIpAddress = gethostbyname(host)
         self.serverPort = 15600
         self.clientSocket = socket(AF_INET, SOCK_STREAM)
         self.clientSocket.connect((self.serverIpAddress, self.serverPort))
@@ -26,7 +27,7 @@ class Client(threading.Thread):
         self.roomServerPort = None
         self.peerServer = None
         self.peerClient = None
-        self.timer = 0
+        self.timer = None
         #############################################
         self.peerIp = None
         self.peerPort = None
@@ -50,7 +51,7 @@ class Client(threading.Thread):
             colored_print("5. Create private chat", "menu")
             colored_print("6. Create chat room", "menu")
             colored_print("7. Join chat room", "menu")
-            colored_print("Enter your choice: ", "prompt")
+            colored_print_no_newline("Enter your choice: ", "prompt")
             userSelection = input()
 
             if userSelection == "1":
@@ -70,20 +71,23 @@ class Client(threading.Thread):
                         self.sendHelloMessage()
 
             elif userSelection == "3" and self.isOnline:
-                self.logout()
-                self.isOnline = False
-                self.loginCredentials = (None, None)
-                self.peerServer.isOnline = False
-                self.peerServer.tcp_server_socket.close()
-                if self.peerClient is not None:
-                    self.peerClient.tcp_socket.close()
+                try:
+                    self.logout()
+                    self.isOnline = False
+                    self.loginCredentials = (None, None)
+                    self.peerServer.isOnline = False
+                    self.peerServer.tcp_server_socket.close()
+                    if self.peerClient is not None:
+                        self.peerClient.tcp_socket.close()
 
-                self.clientServerPort = None
-                self.clientSocket.close()
-                colored_print("Logged out successfully.", "success")
+                    # self.clientServerPort = None
+                    # self.clientSocket.close()
+                    colored_print("Logged out successfully.", "success")
+                except error as e:
+                    logging.info("Error: " + str(e))
             elif userSelection == "4":
                 # self.exit_program()
-                colored_print("Enter username to search: ", "prompt")
+                colored_print_no_newline("Enter username to search: ", "prompt")
                 username_to_search = input()
                 search_status = self.search_user(username_to_search)
                 if search_status is not None and search_status:
@@ -186,9 +190,9 @@ class Client(threading.Thread):
         '''
         This method is used to create a new account.
         '''
-        colored_print("Enter username: ", "prompt")
+        colored_print_no_newline("Enter username: ", "prompt")
         username = input()
-        colored_print("Enter password: ", "prompt")
+        colored_print_no_newline("Enter password: ", "prompt")
         password = input()
         self.clientSocket.send(("create " + username + " " + password).encode())
         response = self.clientSocket.recv(1024).decode()
@@ -202,9 +206,9 @@ class Client(threading.Thread):
         '''
         This method is used to login to an existing account.
         '''
-        colored_print("Enter username: ", "prompt")
+        colored_print_no_newline("Enter username: ", "prompt")
         username = input()
-        colored_print("Enter password: ", "prompt")
+        colored_print_no_newline("Enter password: ", "prompt")
         password = input()
         self.clientSocket.send(("login " + username + " " + password).encode())
         response = self.clientSocket.recv(1024).decode()
@@ -228,12 +232,13 @@ class Client(threading.Thread):
         This method is used to log-out of an existing account.
         '''
         username = str(self.loginCredentials[0])
-        colored_print(username, "prompt")
+        # colored_print(username, "prompt")
         self.clientSocket.send(("log-out " + username).encode())
         response = self.clientSocket.recv(1024).decode()
         logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
         if response == "log-out-success":
             colored_print("Logout successful.", "success")
+            self.timer.cancel()
         elif response == "logout-failed-not-logged-in":
             colored_print("Logout failed. User is not logged in.", "error")
         elif response == "logout-failed-incorrect-username":

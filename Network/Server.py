@@ -38,6 +38,7 @@ class Server(threading.Thread):
 
         self.lock = threading.Lock()
         colored_print("Connection from : " + self.peer_ip + ":" + str(self.peer_port), "success")
+        # colored_print("IP address: " + self.peer_ip, "success")
         while True:
             try:
                 message = self.tcp_socket.recv(1024).decode().split()
@@ -83,6 +84,10 @@ class Server(threading.Thread):
                                 colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "success")
                                 logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
                                 self.tcp_socket.send(response.encode())
+                                colored_print("Added " + self.username + " to online peers", "success")
+                                self.udp_server = UDPServer(self.username, self.tcp_socket)
+                                self.udp_server.start()
+                                self.udp_server.timer.start()
                         else:
                             response = "login-failed-incorrect-password"
                             colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "error")
@@ -198,13 +203,17 @@ class Server(threading.Thread):
         p2p_info = f"p2p {self.server_ip}:{self.server_port}"
         self.tcp_socket.send(p2p_info.encode())
 
+    def reset_timeout(self):
+        self.udp_server.reset_timer()
+
 class UDPServer(threading.Thread):
 
-    def __int__(self, username, clientSocket):
+    def __init__(self, username, client_socket):
         threading.Thread.__init__(self)
-        self.timer = threading.Timer(3, self.waitHelloMessage)
-        self.tcp_socket = clientSocket
         self.username = username
+        # timer thread for the udp server is initialized
+        self.timer = threading.Timer(3, self.waitHelloMessage)
+        self.tcpClientSocket = client_socket
         self.DatabaseAccess = DatabaseAccess()
 
     def waitHelloMessage(self):
@@ -212,8 +221,8 @@ class UDPServer(threading.Thread):
             self.DatabaseAccess.set_user_offline(self.username)
             if self.username in tcp_threads:
                 del tcp_threads[self.username]
-            self.tcp_socket.close()
-            colored_print("Removed " + self.username + " from online peers", "error")
+        self.tcpClientSocket.close()
+        colored_print("Removed " + self.username + " from online peers", "error")
 
     def reset_timer(self):
         self.timer.cancel()
@@ -240,10 +249,10 @@ except gaierror:
 colored_print("Server IP address: " + host, "success")
 colored_print("Server port: " + str(port), "success")
 tcp_server_socket = socket(AF_INET, SOCK_STREAM)
-tcp_server_socket.bind((host, port))
-tcp_server_socket.listen(5)
 udp_socket = socket(AF_INET, SOCK_DGRAM)
+tcp_server_socket.bind((host, port))
 udp_socket.bind((host, udp_port))
+tcp_server_socket.listen(5)
 
 tcp_threads = {}
 online_users = {}
@@ -251,9 +260,9 @@ accounts = {}
 
 inputs = [tcp_server_socket, udp_socket]
 
-while True:
+colored_print("Waiting for connection...", "success")
+while inputs:
     try:
-        colored_print("Waiting for connection...", "success")
         readable, writable, exceptions = select.select(inputs, [], [])
         for s in readable:
             if s is tcp_server_socket:
@@ -266,9 +275,9 @@ while True:
                 message = message.decode().split()
                 if message[0] == "hello":
                     if message[1] in tcp_threads:
-                        tcp_threads[message[1]].reset_timer()
-                        colored_print("Received hello message from " + message[1], "success")
-                        logging.info("Received hello message from " + message[1])
+                        tcp_threads[message[1]].reset_timeout()
+                        # colored_print("Received hello message from " + message[1], "success")
+                        # logging.info("Received hello message from " + message[1])
         # connection_socket, addr = tcp_server_socket.accept()
         # new_thread = Server(addr[0], addr[1], connection_socket, host, port)
         # new_thread.start()
