@@ -8,6 +8,7 @@ from Service.color_utils import colored_print, colored_print_no_newline
 import colorama
 from Network.PeerServer import PeerServer
 from Network.PeerClient import PeerClient
+from DAO.database_access import DatabaseAccess
 
 class Client(threading.Thread):
     def __init__(self):
@@ -28,6 +29,7 @@ class Client(threading.Thread):
         self.peerServer = None
         self.peerClient = None
         self.timer = None
+        self.databaseAccess = DatabaseAccess()
         #############################################
         self.peerIp = None
         self.peerPort = None
@@ -51,14 +53,14 @@ class Client(threading.Thread):
             colored_print("5. Create private chat", "menu")
             colored_print("6. Create chat room", "menu")
             colored_print("7. Join chat room", "menu")
-            colored_print_no_newline("Enter your choice: ", "prompt")
+            colored_print("Enter your choice: ", "prompt")
             userSelection = input()
 
             if userSelection == "1":
                 self.create_account()
             elif userSelection == "2" and not self.isOnline:
                 status = self.login()
-                clientServerPort = int(self.get_open_port())
+                clientServerPort = self.databaseAccess.get_user_port(self.loginCredentials[0])
                 roomServerPort = int(self.get_open_port())
                 if status:
                     self.isOnline = True
@@ -92,25 +94,25 @@ class Client(threading.Thread):
                 search_status = self.search_user(username_to_search)
                 if search_status is not None and search_status:
                     colored_print("User found.", "success")
-                    colored_print("IP address of the user: " + username_to_search + "is " + search_status, "success")
+                    colored_print("IP address of the user: " + username_to_search + " is " + search_status[0] + " on port: " + search_status[1], "success")
             elif userSelection == "5" and self.isOnline:
-                colored_print("Enter username of the user you want to chat with: ", "prompt")
+                colored_print_no_newline("Enter username of the user you want to chat with: ", "prompt")
                 username = input()
                 search_status = self.search_user(username)
                 if search_status is not None and search_status:
                     colored_print("User found.", "success")
-                    search_status = search_status.split(":")
+                    # search_status = search_status.split(":")
                     self.peerServer.chat = 1
                     self.peerClient = PeerClient(connected_ip=search_status[0], connected_port=int(search_status[1]), username=self.loginCredentials[0], peer_server=self.peerServer, received_response=None, choice="5", room_id=None, room_peers = None)
                     self.peerClient.start()
                     self.peerClient.join()
             elif userSelection == "6" and self.isOnline:
-                colored_print("Enter room id: ", "prompt")
+                colored_print_no_newline("Enter room id: ", "prompt")
                 room_id = input()
                 self.create_chat_room(room_id)
                 colored_print("Chat room created successfully.", "success")
             elif userSelection == "7" and self.isOnline:
-                colored_print("Enter room id: ", "prompt")
+                colored_print_no_newline("Enter room id: ", "prompt")
                 room_id = input()
                 join_status = self.join_chat_room(room_id)
                 if join_status is not None and join_status:
@@ -119,14 +121,14 @@ class Client(threading.Thread):
                     self.peerClient = PeerClient(ip_to_connect, None, self.loginCredentials[0], self.peerServer, None, "7", room_id, join_status)
                     self.peerClient.start()
                     self.peerClient.join()
-            elif userSelection == "accept-connection" and self.isOnline:
+            elif userSelection == "accept" and self.isOnline:
                 accept_message = "accept-connection" + " " + str(self.loginCredentials[0])
                 logging.info("Sent message: " + accept_message + " to " + str(self.peerIp) + ":" + str(self.peerPort))
                 self.peerServer.connected_peer_socket.send(accept_message.encode())
                 self.peerClient = PeerClient(self.peerServer.connected_peer_ip, self.peerServer.connected_peer_port, self.loginCredentials[0], self.peerServer, "accept-connection", "5", None, None)
                 self.peerClient.start()
                 self.peerClient.join()
-            elif userSelection == "reject-connection" and self.isOnline:
+            elif userSelection == "reject" and self.isOnline:
                 self.peerServer.connected_peer_socket.send("reject-connection".encode())
                 self.peerServer.isChatting = False
                 logging.info("Sent message: " + "reject-connection" + " to " + str(self.peerIp) + ":" + str(self.peerPort))
@@ -292,9 +294,9 @@ class Client(threading.Thread):
         if response[0] == "search-failed":
             colored_print("Search failed. User not found.", "error")
             return None
-        elif response == "search-success":
+        elif response[0] == "search-success":
             colored_print("Search successful.", "success")
-            return response[1]
+            return response[2], response[3]
 
 
 colorama.init()

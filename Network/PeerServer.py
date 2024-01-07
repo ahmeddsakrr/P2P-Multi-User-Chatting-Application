@@ -19,6 +19,7 @@ class PeerServer(threading.Thread):
         Peer Server Initialization
         '''
         threading.Thread.__init__(self)
+        self.peer_server_hostname = None
         self.username = username
         self.peer_server_port = peer_server_port
         self.chat_room_server_port = chat_room_server_port
@@ -96,7 +97,7 @@ class PeerServer(threading.Thread):
                             sockets.remove(read_socket)
                         elif len(str(message)) > 0:
                             # received a message from the peer
-                            colored_print(self.connected_peer_username + ": " + message, "menu")
+                            colored_print(str(self.connected_peer_username) + ": " + message, "menu")
                         elif str(message).split()[0].lower() == "end-connection":
                             colored_print("Connection ended with " + self.connected_peer_username, "info")
                             if self.room:

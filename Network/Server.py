@@ -267,7 +267,7 @@ while inputs:
         for s in readable:
             if s is tcp_server_socket:
                 connection_socket, addr = tcp_server_socket.accept()
-                new_thread = Server(addr[0], addr[1], connection_socket, host, port)
+                new_thread = Server(addr[0], int(addr[1]), connection_socket, host, port)
                 new_thread.start()
                 # new_thread.send_p2p_info()
             elif s is udp_socket:

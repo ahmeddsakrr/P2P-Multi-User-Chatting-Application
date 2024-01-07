@@ -8,10 +8,10 @@ import colorama
 from Network.PeerServer import PeerServer
 
 class PeerClient(threading.Thread):
-    def __init__(self, connected_ip, connected_port, username, peer_server : PeerServer, received_response, choice, room_id, room_peers, server_name = "192.168.107"):
+    def __init__(self, connected_ip, connected_port, username, peer_server : PeerServer, received_response, choice, room_id, room_peers):
 
         threading.Thread.__init__(self)
-        self.server_name = server_name
+        self.server_name = gethostbyname(gethostname())
         self.server_port = 15600
         self.connected_ip = connected_ip
         self.connected_port = connected_port
@@ -51,8 +51,8 @@ class PeerClient(threading.Thread):
     def run(self) -> None:
         if self.choice == '5':
             colored_print("Peer client started", "success")
-            colored_print("Connected to " + self.connected_ip + ":" + str(self.connected_port), "success")
-            self.tcp_socket.connect((self.connected_ip, self.connected_port))
+            colored_print("Connecting to " + self.connected_ip + ":" + str(self.connected_port), "success")
+            self.tcp_socket.connect((self.connected_ip, int(self.connected_port)))
             if not self.peer_server.isChatting and self.received_response is None:
                 # if the server of this peer is not connected by someone else and if this is the requester side peer client then enters here
                 request_message = "create-private-chat-request " + self.username + " " + str(self.peer_server.peer_server_port)
