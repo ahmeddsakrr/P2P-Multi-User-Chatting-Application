@@ -45,7 +45,7 @@ class PeerClient(threading.Thread):
         colored_print("Leaving the chat room...", "success")
         removed_port = self.peer_server.chat_room_server_port
         request = "leave-room" + " " + str(self.room_id) + " " + str(removed_port) + " " + str(self.username)
-        print(request)
+        # print(request)
         # self.tcp_socket.send(request.encode())
         self.tcp_socket.send(request.encode())
         response = self.tcp_socket.recv(1024).decode()
