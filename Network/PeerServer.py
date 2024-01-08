@@ -59,8 +59,8 @@ class PeerServer(threading.Thread):
             try:
                 read_sockets, write_sockets, error_sockets = select.select(sockets, [], [])
                 for read_socket in read_sockets:
-                    if read_socket == self.tcp_server_socket and not self.room:
-                        tcp_socket, address = self.tcp_server_socket.accept()
+                    if read_socket is self.tcp_server_socket and not self.room:
+                        tcp_socket, address = read_socket.accept()
                         tcp_socket.setblocking(0) # non-blocking socket
                         logging.info("Received connection from " + str(address))
                         sockets.append(tcp_socket)
@@ -68,10 +68,12 @@ class PeerServer(threading.Thread):
                             colored_print(self.username + " is now connected with " + str(address), "success")
                             self.connected_peer_ip = address[0]
                             self.connected_peer_socket = tcp_socket
-                    elif read_socket == self.udp_server_socket and self.room == 1: # handling udp messages
+                    elif read_socket is self.udp_server_socket and self.room == 1: # handling udp messages
                         while True:
                             message, address = self.udp_server_socket.recvfrom(1024)
                             logging.info("Received message: " + message.decode() + " from " + str(address))
+                            message_received = message.decode()
+                            colored_print(message_received, "menu")
                             if not self.room:
                                 break
                     elif not self.room:
@@ -79,15 +81,15 @@ class PeerServer(threading.Thread):
                         message = read_socket.recv(1024).decode()
                         logging.info("Received message: " + str(message) + " from " + str(self.connected_peer_ip))
                         if str(message).split()[0].lower() == "create-private-chat-request":
-                            if read_socket == self.connected_peer_socket:
+                            if read_socket is self.connected_peer_socket:
                                 message = message.split()
-                                self.connected_peer_port = message[2]
+                                self.connected_peer_port = int(message[2])
                                 self.connected_peer_username = message[1]
                                 colored_print("Private chat request from " + self.connected_peer_username, "info")
                                 colored_print("Type 'accept' to accept the request or 'reject' to reject it", "prompt")
                                 self.isChatting = True
                             elif read_socket is not self.connected_peer_socket and self.isChatting:
-                                response_message = "reject-connection " + message.split()[1] + " " + message.split()[2]
+                                response_message = "reject-connection " + str(message.split()[1]) + " " + str(message.split()[2])
                                 read_socket.send(response_message.encode())
                                 sockets.remove(read_socket)
                         elif str(message).split()[0].lower() == "accept-connection":
@@ -113,8 +115,10 @@ class PeerServer(threading.Thread):
                             sockets.append(self.tcp_server_socket)
             except OSError as e:
                 # colored_print("Error: " + str(e), "error")
-                logging.info("Error: " + str(e))
-                break
+                logging.error("Error: " + str(e))
+            except ValueError as e:
+                # colored_print("Error: " + str(e), "error")
+                logging.error("Error: " + str(e))
 
 
 

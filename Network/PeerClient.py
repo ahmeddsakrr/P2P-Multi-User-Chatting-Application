@@ -64,7 +64,7 @@ class PeerClient(threading.Thread):
                 logging.info("Received message: " + self.received_response + " from " + self.connected_ip + ":" + str(self.connected_port))
                 colored_print("Received response: " + self.received_response, "success")
                 self.received_response = self.received_response.split()
-                if self.received_response == "accept-connection":
+                if self.received_response[0] == "accept-connection":
                     # if response is ok then incoming messages will be evaluated as client messages and will be sent to the connected server
                     self.peer_server.isChatting = True
                     self.peer_server.connected_peer_username = self.received_response[1]
@@ -75,7 +75,7 @@ class PeerClient(threading.Thread):
                         logging.info("Send to " + self.connected_ip + ":" + str(self.connected_port) + " : " + sent_message)
                         if sent_message == "exit":
                             self.peer_server.isChatting = False
-                            self.peer_server.connected_peer_username = None
+                            # self.peer_server.connected_peer_username = None
                             self.is_end = True
                             colored_print("Chat ended.", "success")
                             break
@@ -90,8 +90,8 @@ class PeerClient(threading.Thread):
                                 logging.info("Send to " + self.connected_ip + ":" + str(self.connected_port) + " : " + "exit")
                             except OSError as e:
                                 colored_print("Error: " + str(e), "error")
-                            self.tcp_socket.close()
-                            self.received_response = None
+                        self.tcp_socket.close()
+                        self.received_response = None
 
                 elif self.received_response[0] == "reject-connection":
                     # if the response is reject then the client will be closed
@@ -115,7 +115,7 @@ class PeerClient(threading.Thread):
                     logging.info("Send to " + self.connected_ip + ":" + str(self.connected_port) + " : " + sent_message)
                     if sent_message == "exit":
                         self.peer_server.isChatting = False
-                        self.peer_server.connected_peer_username = None
+                        # self.peer_server.connected_peer_username = None
                         self.is_end = True
                         colored_print("Chat ended.", "success")
                         break
@@ -130,8 +130,8 @@ class PeerClient(threading.Thread):
                             logging.info("Send to " + self.connected_ip + ":" + str(self.connected_port) + " : " + "exit")
                         except OSError as e:
                             colored_print("Error: " + str(e), "error")
-                        self.tcp_socket.close()
-                        self.received_response = None
+                    self.tcp_socket.close()
+                    self.received_response = None
 
             elif self.choice == "7":
                 self.tcp_socket.connect((self.server_name, self.server_port))
