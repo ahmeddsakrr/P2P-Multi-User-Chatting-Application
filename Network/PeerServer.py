@@ -80,7 +80,14 @@ class PeerServer(threading.Thread):
                         # communication with the peer
                         message = read_socket.recv(1024).decode()
                         logging.info("Received message: " + str(message) + " from " + str(self.connected_peer_ip))
-                        if str(message).split()[0].lower() == "create-private-chat-request":
+
+                        if not message:
+                            # colored_print("Connection ended with " + self.connected_peer_username, "info")
+                            self.isChatting = False
+                            sockets.remove(read_socket)
+
+
+                        elif str(message).split()[0].lower() == "create-private-chat-request":
                             if read_socket is self.connected_peer_socket:
                                 message = message.split()
                                 self.connected_peer_port = int(message[2])
@@ -94,13 +101,15 @@ class PeerServer(threading.Thread):
                                 sockets.remove(read_socket)
                         elif str(message).split()[0].lower() == "accept-connection":
                             self.isChatting = True
-                        elif str(message).split()[0].lower() == "reject-connection":
+                        elif str(message).split()[0].lower() == "reject-connection" or str(message).split()[0].lower() == "exit":
                             self.isChatting = False
                             sockets.remove(read_socket)
+                            # colored_print("Connection ended with " + self.connected_peer_username, "info")
+                            # break
                         elif len(str(message)) > 0:
                             # received a message from the peer
                             colored_print(str(self.connected_peer_username) + ": " + message, "menu")
-                        elif str(message).split()[0].lower() == "end-connection":
+                        elif str(message).split()[0].lower() == "end-connection" or message.split()[0].lower() == "exit":
                             colored_print("Connection ended with " + self.connected_peer_username, "info")
                             if self.room:
                                 self.room = 0

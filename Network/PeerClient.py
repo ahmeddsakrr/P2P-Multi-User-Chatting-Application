@@ -53,6 +53,7 @@ class PeerClient(threading.Thread):
 
     def run(self) -> None:
         if self.choice == '5':
+            self.tcp_socket = socket(AF_INET, SOCK_STREAM)
             colored_print("Peer client started", "success")
             colored_print("Connecting to " + self.connected_ip + ":" + str(self.connected_port), "success")
             self.tcp_socket.connect((self.connected_ip, int(self.connected_port)))
@@ -73,7 +74,7 @@ class PeerClient(threading.Thread):
                     self.peer_server.connected_peer_username = self.received_response[1]
                     while self.peer_server.isChatting:
                         # as long as the server status is chatting, this client can send messages
-                        sent_message = input("You: ")
+                        sent_message = input()
                         self.tcp_socket.send(sent_message.encode())
                         logging.info("Send to " + self.connected_ip + ":" + str(self.connected_port) + " : " + sent_message)
                         if sent_message == "exit":
@@ -102,7 +103,7 @@ class PeerClient(threading.Thread):
                     self.tcp_socket.send("reject-connection".encode())
                     logging.info("Send to " + self.connected_ip + ":" + str(self.connected_port) + " : " + "reject-connection")
                     self.tcp_socket.close()
-                elif self.received_response[0] == "reject-connection":
+                elif self.received_response[0] == "busy":
                     colored_print("Peer Rejected the Connection", "error")
                     self.tcp_socket.close()
             elif self.received_response.split()[0] == "accept-connection":
@@ -113,7 +114,7 @@ class PeerClient(threading.Thread):
                 colored_print("Private chat request accepted.", "success")
                 while self.peer_server.isChatting:
                     # as long as the server status is chatting, this client can send messages
-                    sent_message = input("You: ")
+                    sent_message = input()
                     self.tcp_socket.send(sent_message.encode())
                     logging.info("Send to " + self.connected_ip + ":" + str(self.connected_port) + " : " + sent_message)
                     if sent_message == "exit":
@@ -132,7 +133,8 @@ class PeerClient(threading.Thread):
                             self.tcp_socket.send("exit".encode())
                             logging.info("Send to " + self.connected_ip + ":" + str(self.connected_port) + " : " + "exit")
                         except OSError as e:
-                            colored_print("Error: " + str(e), "error")
+                            # colored_print("Error: " + str(e), "error")
+                            logging.error("Error: " + str(e))
                     self.tcp_socket.close()
                     self.received_response = None
 
