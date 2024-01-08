@@ -110,15 +110,15 @@ class Client(threading.Thread):
                 colored_print_no_newline("Enter room id: ", "prompt")
                 room_id = input()
                 self.create_chat_room(room_id)
-                colored_print("Chat room created successfully.", "success")
+                # colored_print("Chat room created successfully.", "success")
             elif userSelection == "7" and self.isOnline:
                 colored_print_no_newline("Enter room id: ", "prompt")
                 room_id = input()
                 join_status = self.join_chat_room(room_id)
                 if join_status is not None and join_status:
-                    ip_to_connect = "192.168.1.5"
+                    ip_to_connect = gethostname()
                     self.peerServer.room = 1
-                    self.peerClient = PeerClient(ip_to_connect, None, self.loginCredentials[0], self.peerServer, None, "7", room_id, join_status)
+                    self.peerClient = PeerClient(gethostbyname(ip_to_connect), None, self.loginCredentials[0], self.peerServer, None, "7", room_id, join_status)
                     self.peerClient.start()
                     self.peerClient.join()
             elif userSelection == "accept" and self.isOnline:
@@ -158,7 +158,10 @@ class Client(threading.Thread):
                     colored_print("Invalid choice.", "error")
 
     def create_chat_room(self, room_name):
-        self.clientSocket.send(f"create-room {room_name}".encode())
+        # self.clientSocket.send((f"create-room {room_name}").encode())
+        message = "create-room " + room_name + " " + str(self.roomServerPort)
+        # self.clientSocket.send(("create-room " + room_name).encode())
+        self.clientSocket.send(message.encode())
         logging.info("Sent message: " + "create-room " + room_name + " to " + self.serverIpAddress + ":" + str(self.serverPort))
         response = self.clientSocket.recv(1024).decode()
         logging.info("Received message: " + response + " from " + self.serverIpAddress + ":" + str(self.serverPort))
@@ -168,7 +171,7 @@ class Client(threading.Thread):
             colored_print(f"Failed to create chat room '{room_name}'.", "error")
 
     def join_chat_room(self,room_name):
-        message = "join-room " + room_name + " " + str(self.roomServerPort)
+        message = "join-room " + room_name + " " + str(self.roomServerPort) + " " + str(self.loginCredentials[0])
         logging.info("Sent message: " + message + " to " + self.serverIpAddress + ":" + str(self.serverPort))
         self.clientSocket.send(message.encode())
         response = self.clientSocket.recv(1024).decode()
@@ -181,7 +184,6 @@ class Client(threading.Thread):
         if response[0] == "join-room-success":
             colored_print(f"Joined chat room '{room_name}' successfully.", "success")
             return peers_list
-            # Additional logic for handling chat in the room can be added here
         elif response == "join-room-failed":
             colored_print(f"Failed to join chat room '{room_name}'.", "error")
             return 0
@@ -264,7 +266,6 @@ class Client(threading.Thread):
         p2p_info = self.clientSocket.recv(1024).decode()
         self.peerIp, self.peerPort = self.parse_p2p_info(p2p_info)
         colored_print(f"Peer-to-peer connection established with {self.peerIp}:{self.peerPort}", "success")
-        # Now you can start a new thread to handle peer-to-peer communication
 
     def parse_p2p_info(self, info):
         parts = info.split()

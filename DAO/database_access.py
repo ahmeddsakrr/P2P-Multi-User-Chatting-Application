@@ -300,7 +300,7 @@ class DatabaseAccess:
 
     def get_chat_room_peers(self, room_name):
         result = self.db.rooms.find_one({'room_name': room_name})
-        return result["_id"], result["users"] # return the id of the room and the users in the room
+        return result["room_name"], result["users"] # return the id of the room and the users in the room
 
     def update_chat_room_peers(self, room_name, peers):
         self.db.rooms.update_one({'room_name': room_name}, {'$set': {'users': peers}})

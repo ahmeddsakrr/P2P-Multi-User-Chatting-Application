@@ -42,14 +42,40 @@ class Server(threading.Thread):
         while True:
             try:
                 message = self.tcp_socket.recv(1024).decode().split()
+                # print(message)
                 if not message:
-                    colored_print("No message received", "error")
+                    # colored_print("No message received", "error")
                     break
                 logging.info("Received message: " + str(message) + " from " + self.peer_ip + ":" + str(self.peer_port))
                 if str(message[0]).lower() == "create-room":
-                    self.create_chat_room(message[1])
+                    # self.create_chat_room(message[1])
+                    if self.DatabaseAccess.chat_room_exists(str(message[1])):
+                        response = "create-room-failed"
+                        colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "error")
+                        logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
+                        self.tcp_socket.send(response.encode())
+                    else:
+                        self.DatabaseAccess.create_chat_room(str(message[1]))
+                        response = "create-room-success"
+                        colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "success")
+                        logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
+                        self.tcp_socket.send(response.encode())
                 elif str(message[0]).lower() == "join-room":
-                    self.join_chat_room(message[1])
+                    # self.join_chat_room(message[1])
+                    if self.DatabaseAccess.chat_room_exists(str(message[1])):
+                        name, peers = self.DatabaseAccess.get_chat_room_peers(str(message[1]))
+                        peers.append(message[2])
+                        peers = list(set(peers)) # remove duplicates
+                        self.DatabaseAccess.update_chat_room_peers(name, peers)
+                        response = "join-room-success" + " " + str(peers)
+                        colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "success")
+                        logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
+                        self.tcp_socket.send(response.encode())
+                    else:
+                        response = "join-room-failed"
+                        colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "error")
+                        logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
+                        self.tcp_socket.send(response.encode())
                 elif str(message[0]).lower() == "create":
                     if self.DatabaseAccess.user_exists(str(message[1])):
                         response = "create-failed-user-exists"
@@ -143,37 +169,17 @@ class Server(threading.Thread):
                         colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "error")
                         logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
                         self.tcp_socket.send(response.encode())
-                elif str(message[0]).lower() == "create-room":
-                    if self.DatabaseAccess.chat_room_exists(str(message[1])):
-                        response = "create-room-failed"
-                        colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "error")
-                        logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
-                        self.tcp_socket.send(response.encode())
-                    else:
-                        self.DatabaseAccess.create_chat_room(str(message[1]))
-                        response = "create-room-success"
-                        colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "success")
-                        logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
-                        self.tcp_socket.send(response.encode())
-                elif str(message[0]).lower() == "join-room":
-                    if self.DatabaseAccess.chat_room_exists(str(message[1])):
-                        id, peers = self.DatabaseAccess.get_chat_room_peers(str(message[1]))
-                        peers.append(message[2])
-                        peers = list(set(peers)) # remove duplicates
-                        self.DatabaseAccess.update_chat_room_peers(id, peers)
-                        response = "join-room-success"
-                        colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "success")
-                        logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
-                        self.tcp_socket.send(response.encode())
-                    else:
-                        response = "join-room-failed"
-                        colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "error")
-                        logging.info("Sent message: " + response + " to " + self.peer_ip + ":" + str(self.peer_port))
-                        self.tcp_socket.send(response.encode())
-
-                elif str(message[0]).lower() == "exit":
+                elif str(message[0]).lower() == "leave-room":
                     self.DatabaseAccess.remove_user_from_room(message[1], message[2])
                     response = "exit-success"
+                    self.tcp_socket.send(response.encode())
+                    colored_print("From " + self.peer_ip + ":" + str(self.peer_port) + " : " + response, "success")
+
+                elif str(message[0]).lower() == "update-peers":
+                    name, peers = self.DatabaseAccess.get_chat_room_peers(str(message[1]))
+                    response = "update-peers-success " + str(peers)
+                    self.tcp_socket.send(response.encode())
+
 
             except OSError as e:
                 colored_print("Connection closed by " + self.peer_ip + ":" + str(self.peer_port), "error")

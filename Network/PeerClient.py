@@ -38,12 +38,15 @@ class PeerClient(threading.Thread):
         updated_list_start = response.index("[")
         updated_list_end = response.index("]") + 1
         updated_list = response[updated_list_start:updated_list_end]
-        response = response.split()
+        # response = response.split()
         self.room_peers = eval(updated_list)
 
     def exit(self):
+        colored_print("Leaving the chat room...", "success")
         removed_port = self.peer_server.chat_room_server_port
-        request = "leave-room" + " " + str(self.room_id) + " " + str(removed_port)
+        request = "leave-room" + " " + str(self.room_id) + " " + str(removed_port) + " " + str(self.username)
+        print(request)
+        # self.tcp_socket.send(request.encode())
         self.tcp_socket.send(request.encode())
         response = self.tcp_socket.recv(1024).decode()
         return response
@@ -133,30 +136,41 @@ class PeerClient(threading.Thread):
                     self.tcp_socket.close()
                     self.received_response = None
 
-            elif self.choice == "7":
-                self.tcp_socket.connect((self.server_name, self.server_port))
-                colored_print("Chat Room Client Started", "success")
-                while True:
-                    self.update_peers()
-                    if not self.room_peers:
-                        break
-                    message_to_send = input(colored_print_no_newline("You: ", "prompt"))
-                    self.update_peers()
+        elif self.choice == "7":
+            self.tcp_socket.connect((self.server_name, self.server_port))
+            colored_print("Chat Room Client Started", "success")
+            for peer in self.room_peers:
+                if int(peer) != self.peer_server.chat_room_server_port:
+                    # we don't want to send the message to the server
+                    self.udp_socket.sendto(f"{self.username} joined the chat room".encode(), (self.connected_ip, int(peer)))
+            while True:
+                self.update_peers()
+                if not self.room_peers:
+                    break
+                # colored_print_no_newline("You: ", "prompt")
+                message_to_send = input()
+                # add my username to the message
+                message_to_send_to_peers = f"{self.username}: {message_to_send}"
+                self.update_peers()
 
-                    if len(message_to_send) and message_to_send.split()[0] == "exit":
-                        if self.exit() == "success":
-                            message_to_send = f"{self.username} left the chat room"
-                            for peer in self.room_peers:
-                                self.udp_socket.sendto(message_to_send.encode(), (self.connected_ip, int(peer)))
-                            break
-
-                    else:
+                if len(message_to_send) and message_to_send == "exit":
+                    if self.exit() == "exit-success":
+                        message_to_send_to_peers = f"{self.username} left the chat room"
                         for peer in self.room_peers:
                             if int(peer) != self.peer_server.chat_room_server_port:
                                 # we don't want to send the message to the server
-                                self.udp_socket.sendto(message_to_send.encode(), (self.connected_ip, int(peer)))
+                                self.udp_socket.sendto(message_to_send_to_peers.encode(), (self.connected_ip, int(peer)))
+                        # remove myself from their peers
+                        self.room_peers.remove(str(self.peer_server.chat_room_server_port))
+                        break
 
-                colored_print("Chat Room Client Ended", "success")
-                self.choice = None
-                self.tcp_socket.close()
+                else:
+                    for peer in self.room_peers:
+                        if int(peer) != self.peer_server.chat_room_server_port:
+                            # we don't want to send the message to the server
+                            self.udp_socket.sendto(message_to_send_to_peers.encode(), (self.connected_ip, int(peer)))
+
+            colored_print("Chat Room Client Ended", "success")
+            self.choice = None
+            self.tcp_socket.close()
 
